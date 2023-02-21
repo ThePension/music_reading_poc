@@ -12,6 +12,16 @@
     <!-- Fichier JavaScript pour la bibliothèque Meyda et le script principal -->
     <script type="text/javascript" src="https://unpkg.com/meyda@latest/dist/web/meyda.min.js" />
     <script src="./script.js"></script>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: #fff;
+        }
+        
+        .light {
+            color: #fff;
+        }
+    </style>
 </head>
 
 <body>
@@ -19,6 +29,7 @@
         <h1>Apprentissage du solfège</h1>
         <p>Jouez la note affichée à l'écran avec votre instrument.</p>
         <div id="note-display"></div>
+        <div id="note-frequency"></div>
     </div>
 </body>
 
@@ -26,54 +37,58 @@
 
     // Éléments du DOM
     const noteDisplay = document.getElementById('note-display');
+    const noteFrequency = document.getElementById('note-frequency');
 
-    function autoCorrelate(buf, sampleRate) {
+    function autoCorrelate( buf, sampleRate ) {
         // Implements the ACF2+ algorithm
         var SIZE = buf.length;
         var rms = 0;
-
-        for (var i = 0; i < SIZE; i++) {
+    
+        for (var i=0;i<SIZE;i++) {
             var val = buf[i];
-            rms += val * val;
+            rms += val*val;
         }
-        rms = Math.sqrt(rms / SIZE);
-        if (rms < 0.01) // not enough signal
+        rms = Math.sqrt(rms/SIZE);
+        if (rms<0.01) // not enough signal
             return -1;
-
-        var r1 = 0, r2 = SIZE - 1, thres = 0.2;
-        for (var i = 0; i < SIZE / 2; i++)
-            if (Math.abs(buf[i]) < thres) { r1 = i; break; }
-        for (var i = 1; i < SIZE / 2; i++)
-            if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
-
-        buf = buf.slice(r1, r2);
+    
+        var r1=0, r2=SIZE-1, thres=0.2;
+        for (var i=0; i<SIZE/2; i++)
+            if (Math.abs(buf[i])<thres) { r1=i; break; }
+        for (var i=1; i<SIZE/2; i++)
+            if (Math.abs(buf[SIZE-i])<thres) { r2=SIZE-i; break; }
+    
+        buf = buf.slice(r1,r2);
         SIZE = buf.length;
-
+    
         var c = new Array(SIZE).fill(0);
-        for (var i = 0; i < SIZE; i++)
-            for (var j = 0; j < SIZE - i; j++)
-                c[i] = c[i] + buf[j] * buf[j + i];
-
-        var d = 0; while (c[d] > c[d + 1]) d++;
-        var maxval = -1, maxpos = -1;
-        for (var i = d; i < SIZE; i++) {
+        for (var i=0; i<SIZE; i++)
+            for (var j=0; j<SIZE-i; j++)
+                c[i] = c[i] + buf[j]*buf[j+i];
+    
+        var d=0; while (c[d]>c[d+1]) d++;
+        var maxval=-1, maxpos=-1;
+        for (var i=d; i<SIZE; i++) {
             if (c[i] > maxval) {
                 maxval = c[i];
                 maxpos = i;
             }
         }
         var T0 = maxpos;
-
-        var x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
-        a = (x1 + x3 - 2 * x2) / 2;
-        b = (x3 - x1) / 2;
-        if (a) T0 = T0 - b / (2 * a);
-
-        return sampleRate / T0;
+    
+        var x1=c[T0-1], x2=c[T0], x3=c[T0+1];
+        a = (x1 + x3 - 2*x2)/2;
+        b = (x3 - x1)/2;
+        if (a) T0 = T0 - b/(2*a);
+    
+        return sampleRate/T0;
     }
+    
 
     var bufferlen = 2048;
     var buffer = new Float32Array( bufferlen );
+    var analyser = null;
+    var audioContext = null;
 
     // Liste de fréquences de référence pour les notes de la gamme
     const REFERENCE_FREQUENCIES = {
@@ -205,28 +220,39 @@
         return closestNoteName;
     }
 
+    function updatePitch()
+    {
+        analyser.getFloatTimeDomainData(buffer);
+
+        console.log(buffer);
+
+        var pitch = autoCorrelate(buffer, audioContext.sampleRate);
+        var note = getClosestNoteName(pitch);
+        console.log(pitch);
+        noteDisplay.textContent = note;
+        noteFrequency.textContent = pitch;
+
+        window.requestAnimationFrame( updatePitch );
+    }
+
     // Fonction d'initialisation de l'entrée audio
     async function initAudio() {
         try {
-            const audioContext = new AudioContext();
+            // Récupération du flux audio
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-            const sourceNode = audioContext.createMediaStreamSource(stream);
-            
+            // Création d'un contexte audio
+            audioContext = new AudioContext();
+            // Création d'un analyseur audio
             analyser = audioContext.createAnalyser();
             analyser.fftSize = 2048;
-            sourceNode.connect(analyser);
-            // analyser.connect(audioContext.destination);
-            // sourceNode.start(0);
+            // Création d'un noeud source audio
+            var source = audioContext.createMediaStreamSource(stream);
+            // Connexion du noeud source à l'analyseur
+            source.connect(analyser);
+            // Création d'un tableau pour stocker les données audio
+            var buffer = new Float32Array(analyser.fftSize);
 
-            // Boucle pour mettre à jour l'affichage de la note jouée
-            setInterval(() => {
-                analyser.getFloatTimeDomainData(buffer);
-                console.log(buffer);
-                const pitch = autoCorrelate(buffer, audioContext.sampleRate);
-                const note = getClosestNoteName(pitch);
-                noteDisplay.textContent = note;
-                console.log(note);
-            }, 50);
+            updatePitch();
         } catch (error) {
             console.error("Erreur lors de l'initialisation de l'audio :", error);
         }
