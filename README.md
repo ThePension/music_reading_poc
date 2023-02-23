@@ -1,31 +1,29 @@
-# music_reading_poc
+#  music_reading_poc
 
-## Tone.js
-- https://tonejs.github.io/
+This template should help get you started developing with Vue 3 in Vite.
 
-## Meyda
-- https://meyda.js.org/showcase
-- https://meyda.js.org/getting-started
-- https://github.com/meyda/meyda
-- https://wac.ircam.fr/pdf/wac15_submission_17.pdf
+## Recommended IDE Setup
 
-## Autocorrelation algorithm
-Detecting pitch with the Web Audio API and autocorrelation
-- https://alexanderell.is/posts/tuner/
-- https://en.wikipedia.org/wiki/Pitch_detection_algorithm
-- https://github.com/cwilso/PitchDetect/blob/main/js/pitchdetect.js
-- https://www.zigtuner.com/
-- https://www.mathworks.com/matlabcentral/fileexchange/54663-yin-tuner
+[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
 
-## Frequencies for equal-tempered scale, A4 = 440 Hz
-- https://pages.mtu.edu/~suits/notefreqs.html
+## Customize configuration
 
-## Generating tone
-Used for testing
+See [Vite Configuration Reference](https://vitejs.dev/config/).
 
-- https://onlinetonegenerator.com/
+## Project Setup
 
-### Playing virtual instruments
-Used for testing
+```sh
+npm install
+```
 
-- https://virtualpiano.net/virtual-music-instruments/
+### Compile and Hot-Reload for Development
+
+```sh
+npm run dev
+```
+
+### Compile and Minify for Production
+
+```sh
+npm run build
+```
