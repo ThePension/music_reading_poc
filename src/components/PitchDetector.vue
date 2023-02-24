@@ -44,6 +44,10 @@ export default {
             const pitch = this.pitchFinder(inputBuffer);
 
             console.log(pitch);
+
+            if (pitch) {
+              this.note = pitchToNote(pitch);
+            }
           }, 1000 / 60);
         })
         .catch((err) => console.error(err));
@@ -72,7 +76,8 @@ function pitchToNote (pitch) {
     'B',
   ];
   const octave = Math.floor(pitch / 12) - 1;
+  
   const noteName = noteNames[pitch % 12];
-  return `${noteName}${octave}`;
+  return `${noteName} ${octave} cents`;
 }
 </script>
