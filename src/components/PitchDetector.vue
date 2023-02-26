@@ -15,13 +15,22 @@ export default {
     return {
       audioStream: null,
       pitchFinder: PitchFinder.AMDF(),
+      dectector: [PitchFinder.YIN(), PitchFinder.AMDF(), PitchFinder.DynamicWavelet()],
       isRecording: false,
       note: null,
     };
   },
   methods: {
     startRecording() {
-      navigator.mediaDevices.getUserMedia({ audio: true })
+      navigator.mediaDevices.getUserMedia({ "audio": {
+            "mandatory": {
+                "googEchoCancellation": "false",
+                "googAutoGainControl": "false",
+                "googNoiseSuppression": "false",
+                "googHighpassFilter": "false"
+            },
+            "optional": []
+        }, })
         .then((stream) => {
           this.audioStream = stream;
           const audioContext = new AudioContext();
@@ -39,16 +48,27 @@ export default {
 
             analyser.getFloatTimeDomainData(inputBuffer);
 
-            // console.log(inputBuffer);
+            var pitches = this.dectector.map((detector) => detector(inputBuffer));
 
-            const pitch = this.pitchFinder(inputBuffer);
+            // Remove null values
+            pitches = pitches.filter((pitch) => pitch);
+
+            // Remove impossible values
+            pitches = pitches.filter((pitch) => pitch && pitch >= 16.35 && pitch <= 7902.13);
+
+            // Get the mean of the pitches
+            const pitch = pitches.reduce((a, b) => a + b, 0) / pitches.length;
+
 
             console.log(pitch);
 
             if (pitch) {
               this.note = pitchToNote(pitch);
             }
-          }, 1000 / 60);
+            else {
+              this.note = "-";
+            }
+          }, 1000 / 20);
         })
         .catch((err) => console.error(err));
     },
@@ -193,10 +213,55 @@ function pitchToNote (pitch) {
 
   const octave = Math.floor(pitch / 12) - 1;
   
-  // const noteName = noteNames[Math.floor(pitch) % 12];
-
   const noteName = getClosestNoteName(pitch);
 
   return `${noteName} ${octave} cents`;
 }
+
+function autoCorrelate(buf, sampleRate)
+{
+  // Implements the ACF2+ algorithm
+	var SIZE = buf.length;
+	var rms = 0;
+
+	for (var i=0;i<SIZE;i++) {
+		var val = buf[i];
+		rms += val*val;
+	}
+	rms = Math.sqrt(rms/SIZE);
+	if (rms<0.01) // not enough signal
+		return -1;
+
+	var r1=0, r2=SIZE-1, thres=0.2;
+	for (var i=0; i<SIZE/2; i++)
+		if (Math.abs(buf[i])<thres) { r1=i; break; }
+	for (var i=1; i<SIZE/2; i++)
+		if (Math.abs(buf[SIZE-i])<thres) { r2=SIZE-i; break; }
+
+	buf = buf.slice(r1,r2);
+	SIZE = buf.length;
+
+	var c = new Array(SIZE).fill(0);
+	for (var i=0; i<SIZE; i++)
+		for (var j=0; j<SIZE-i; j++)
+			c[i] = c[i] + buf[j]*buf[j+i];
+
+	var d=0; while (c[d]>c[d+1]) d++;
+	var maxval=-1, maxpos=-1;
+	for (var i=d; i<SIZE; i++) {
+		if (c[i] > maxval) {
+			maxval = c[i];
+			maxpos = i;
+		}
+	}
+	var T0 = maxpos;
+
+	var x1=c[T0-1], x2=c[T0], x3=c[T0+1];
+	a = (x1 + x3 - 2*x2)/2;
+	b = (x3 - x1)/2;
+	if (a) T0 = T0 - b/(2*a);
+
+	return sampleRate/T0;
+}
+
 </script>
