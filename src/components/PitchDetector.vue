@@ -3,7 +3,11 @@
     <h1>Reconnaissance de notes</h1>
     <button @click="startRecording">Commencer l'enregistrement</button>
     <button @click="stopRecording">Arrêter l'enregistrement</button>
-    <p>Note jouée : {{ note }}</p>
+    <select v-model="pitchFinder">
+      <option v-for="detector in detectors" :value="detector">{{ detector.name }}</option>
+    </select>
+    <p>Note jouée :</p>
+    <h2>{{ note }}</h2>
   </div>
 </template>
 
@@ -14,8 +18,8 @@ export default {
   data() {
     return {
       audioStream: null,
+      detectors: [PitchFinder.YIN(), PitchFinder.AMDF(), PitchFinder.DynamicWavelet()],
       pitchFinder: PitchFinder.AMDF(),
-      dectector: [PitchFinder.YIN(), PitchFinder.AMDF(), PitchFinder.DynamicWavelet()],
       isRecording: false,
       note: null,
     };
@@ -44,11 +48,13 @@ export default {
           setInterval(() => {
             if (!this.isRecording) return;
 
+            console.log("pitchFinder: ", this.pitchFinder.name);
+
             const inputBuffer = new Float32Array(2048);
 
             analyser.getFloatTimeDomainData(inputBuffer);
 
-            var pitches = this.dectector.map((detector) => detector(inputBuffer));
+            var pitches = this.detectors.map((detector) => detector(inputBuffer));
 
             // Remove null values
             pitches = pitches.filter((pitch) => pitch);
@@ -216,6 +222,11 @@ function pitchToNote (pitch) {
   const noteName = getClosestNoteName(pitch);
 
   return `${noteName} ${octave} cents`;
+}
+
+function crepe(buf, sampleRate)
+{
+
 }
 
 function autoCorrelate(buf, sampleRate)

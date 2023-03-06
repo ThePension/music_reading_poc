@@ -7,7 +7,6 @@ import PicthDetector from "../components/PitchDetector.vue";
 
 <template>
   <main>
-    <h1>Audio Pitch Detector</h1>
     <PicthDetector />
   </main>
 </template>
