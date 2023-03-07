@@ -45,7 +45,7 @@ export default {
         PitchFinder.YIN(),
         PitchFinder.AMDF(),
         PitchFinder.DynamicWavelet(),
-        this.crepe,
+        // this.crepe,
       ],
       pitchFinder: PitchFinder.YIN(),
       isRecording: false,
