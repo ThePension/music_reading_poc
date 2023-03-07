@@ -19,7 +19,7 @@
 
 <script>
 import * as PitchFinder from "pitchfinder";
-import ml5 from "ml5";
+// import ml5 from "ml5";
 
 const REFERENCE_FREQUENCIES = [
   "C",
@@ -124,7 +124,7 @@ export default {
     },
 
     initCrepe() {
-      this.crepePitch = ml5.pitchDetection("/model", this.audioContext, this.audioStream, null);
+      // this.crepePitch = ml5.pitchDetection("/model", this.audioContext, this.audioStream, null);
     },
     
     crepe(buf, sampleRate) {
