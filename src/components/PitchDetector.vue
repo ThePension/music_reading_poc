@@ -19,34 +19,38 @@
 
 <script>
 import * as PitchFinder from "pitchfinder";
+import ml5 from "ml5";
 
 const REFERENCE_FREQUENCIES = [
-    "C",
-    "C#",
-    "D",
-    "D#",
-    "E",
-    "F",
-    "F#",
-    "G",
-    "G#",
-    "A",
-    "A#",
-    "B",
-  ];
+  "C",
+  "C#",
+  "D",
+  "D#",
+  "E",
+  "F",
+  "F#",
+  "G",
+  "G#",
+  "A",
+  "A#",
+  "B",
+];
 
 export default {
   data() {
     return {
       audioStream: null,
+      audioContext: null, // new AudioContext(),
       detectors: [
         PitchFinder.YIN(),
         PitchFinder.AMDF(),
         PitchFinder.DynamicWavelet(),
+        this.crepe,
       ],
       pitchFinder: PitchFinder.YIN(),
       isRecording: false,
       note: null,
+      crepePitch: null,
     };
   },
   methods: {
@@ -64,10 +68,13 @@ export default {
           },
         })
         .then((stream) => {
+          this.audioContext = new AudioContext();
           this.audioStream = stream;
-          const audioContext = new AudioContext();
-          const analyser = audioContext.createAnalyser();
-          const source = audioContext.createMediaStreamSource(stream);
+
+          // this.initCrepe();
+
+          const analyser = this.audioContext.createAnalyser();
+          const source = this.audioContext.createMediaStreamSource(stream);
 
           source.connect(analyser);
 
@@ -76,7 +83,7 @@ export default {
           setInterval(() => {
             if (!this.isRecording) return;
 
-            // console.log("pitchFinder: ", this.pitchFinder.name);
+            console.log("pitchFinder: ", this.pitchFinder.name);
 
             const inputBuffer = new Float32Array(2048);
 
@@ -99,7 +106,7 @@ export default {
             // // Get the mean of the pitches
             // const pitch = pitches.reduce((a, b) => a + b, 0) / pitches.length;
 
-            // console.log(pitch);
+            console.log(pitch);
 
             if (pitch) {
               this.note = pitchToNote(pitch);
@@ -115,6 +122,21 @@ export default {
       this.audioStream.getTracks().forEach((track) => track.stop());
       this.note = null;
     },
+
+    initCrepe() {
+      this.crepePitch = ml5.pitchDetection("/model", this.audioContext, this.audioStream, null);
+    },
+    
+    crepe(buf, sampleRate) {
+      this.crepePitch.getPitch((err, frequency) => {
+        console.log("Frequency", frequency);
+      });
+      return 0;
+      // return await this.crepePitch.getPitch();
+    },
+  },
+  mounted() {
+    // this.initCrepe();
   },
 };
 
@@ -127,8 +149,6 @@ function pitchToNote(pitch) {
   // return `${currentNote} ${octave} cents`;
   return `${currentNote}`;
 }
-
-function crepe(buf, sampleRate) {}
 
 // taken from p5.Sound
 function freqToMidi(f) {
