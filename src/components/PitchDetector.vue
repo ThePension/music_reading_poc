@@ -6,8 +6,9 @@
     <q-btn @click="stopRecording" v-bind:disable="!isRecording" class="q-ma-md" style="background: #FFFFFF; color: black"
       label="Arrêter la détection" />
 
+    <h5>Moyen de détection :</h5>
     <div class="q-pa-md">
-      <q-option-group :options="detectors" type="radio" v-model="pitchFinder" />
+      <q-option-group :options="detectors" type="radio" v-model="pitchFinder" emit-value map-options />
     </div>
 
     <h5>Note jouée :</h5>
@@ -20,6 +21,7 @@
 
 <script>
 import * as PitchFinder from "pitchfinder";
+import { ref } from "vue";
 import ml5 from "ml5";
 
 const REFERENCE_FREQUENCIES = [
@@ -41,12 +43,12 @@ export default {
   data() {
     return {
       audioStream: null,
-      audioContext: null, // new AudioContext(),
-      pitchFinder: PitchFinder.YIN(),
+      audioContext: null,
       detectors: [
         {
           "label": "YIN",
-          "value": PitchFinder.YIN()
+          "value": PitchFinder.YIN(),
+          "selected": true
         },
         {
           "label": "AMDF",
@@ -65,6 +67,7 @@ export default {
           "value": this.crepe
         }
       ],
+      pitchFinder: PitchFinder.YIN(),
       isRecording: false,
       note: "-",
       pitch: "-",
@@ -110,8 +113,6 @@ export default {
             analyser.getFloatTimeDomainData(inputBuffer);
 
             this.pitch = this.pitchFinder(inputBuffer);
-
-            console.log(this.pitch);
 
             this.updateUi();
           }, 1000 / 20);
@@ -199,9 +200,10 @@ export default {
       return this.sampleRate / T0;
     }
   },
-  mounted() {
-    // this.initCrepe();
-  },
+  created() {
+      // Set the default pitch finder
+      this.pitchFinder = this.detectors[0].value;
+    },
 };
 
 function midiToNote(midiNum) {
@@ -214,6 +216,4 @@ function freqToMidi(f) {
   const m = Math.round(12 * mathlog2) + 69;
   return m;
 }
-
-
 </script>
