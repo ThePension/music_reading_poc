@@ -44,7 +44,12 @@ export default {
     return {
       audioStream: null,
       audioContext: null,
+      analyser: null,
       detectors: [
+        {
+          "label": "YIN Fast",
+          "value": PitchFinder.YINFast(),
+        },
         {
           "label": "YIN",
           "value": PitchFinder.YIN(),
@@ -98,26 +103,31 @@ export default {
 
           this.initCrepe();
 
-          const analyser = this.audioContext.createAnalyser();
+          this.analyser = this.audioContext.createAnalyser();
           const source = this.audioContext.createMediaStreamSource(stream);
 
-          source.connect(analyser);
+          source.connect(this.analyser);
 
           this.isRecording = true;
 
-          setInterval(() => {
-            if (!this.isRecording) return;
-
-            const inputBuffer = new Float32Array(2048);
-
-            analyser.getFloatTimeDomainData(inputBuffer);
-
-            this.pitch = this.pitchFinder(inputBuffer);
-
-            this.updateUi();
-          }, 1000 / 20);
+          this.updatePitch();
         })
         .catch((err) => console.error(err));
+    },
+
+    updatePitch()
+    {
+      if (!this.isRecording) return;
+
+      const inputBuffer = new Float32Array(2048);
+
+      this.analyser.getFloatTimeDomainData(inputBuffer);
+
+      this.pitch = this.pitchFinder(inputBuffer);
+
+      this.updateUi();
+
+      requestAnimationFrame(this.updatePitch);
     },
 
     /**
