@@ -1,12 +1,19 @@
 <template>
   <div>
     <h1>Reconnaissance de notes</h1>
-    <button @click="startRecording" v-bind:disabled="isRecording">
-      Commencer l'enregistrement
-    </button>
-    <button @click="stopRecording" v-bind:disabled="!isRecording">
-      Arrêter l'enregistrement
-    </button>
+    <q-btn
+      @click="startRecording"
+      v-bind:hidden="isRecording"
+      style="background: #ff0080; color: white"
+      label="Commencer la détection"
+    />
+    <q-btn
+      @click="stopRecording"
+      v-bind:hidden="!isRecording"
+      style="background: #ff0080; color: white"
+      label="Arrêter la détection"
+    />
+    
     <select v-model="pitchFinder">
       <option v-for="detector in detectors" :value="detector">
         {{ detector.name }}
@@ -126,7 +133,7 @@ export default {
     initCrepe() {
       // this.crepePitch = ml5.pitchDetection("/model", this.audioContext, this.audioStream, null);
     },
-    
+
     crepe(buf, sampleRate) {
       this.crepePitch.getPitch((err, frequency) => {
         console.log("Frequency", frequency);
