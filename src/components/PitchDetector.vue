@@ -1,27 +1,13 @@
 <template>
   <div class="q-pa-md">
     <h4 class="q-my-lg">Reconnaissance de notes</h4>
-    <q-btn
-      @click="startRecording"
-      class="q-ma-md"
-      v-bind:disable="isRecording"
-      style="background: #FFFFFF; color: black"
-      label="Commencer la détection"
-    />
-    <q-btn
-      @click="stopRecording"
-      v-bind:disable="!isRecording"
-      class="q-ma-md"
-      style="background: #FFFFFF; color: black"
-      label="Arrêter la détection"
-    />
+    <q-btn @click="startRecording" class="q-ma-md" v-bind:disable="isRecording" style="background: #FFFFFF; color: black"
+      label="Commencer la détection" />
+    <q-btn @click="stopRecording" v-bind:disable="!isRecording" class="q-ma-md" style="background: #FFFFFF; color: black"
+      label="Arrêter la détection" />
 
     <div class="q-pa-md">
-      <q-option-group
-        :options="detectors"
-        type="radio"
-        v-model="pitchFinder"
-      />
+      <q-option-group :options="detectors" type="radio" v-model="pitchFinder" />
     </div>
 
     <h5>Note jouée :</h5>
@@ -34,7 +20,7 @@
 
 <script>
 import * as PitchFinder from "pitchfinder";
-// import ml5 from "ml5";
+import ml5 from "ml5";
 
 const REFERENCE_FREQUENCIES = [
   "C",
@@ -70,13 +56,21 @@ export default {
           "label": "DynamicWavelet",
           "value": PitchFinder.DynamicWavelet()
         },
-        // this.crepe,
+        {
+          "label": "FftAutoCorrelation",
+          "value": this.autoCorrelate
+        },
+        {
+          "label": "CREPE",
+          "value": this.crepe
+        }
       ],
       isRecording: false,
       note: "-",
       pitch: "-",
       midiNum: "-",
       crepePitch: null,
+      sampleRate: 0,
     };
   },
   methods: {
@@ -97,7 +91,9 @@ export default {
           this.audioContext = new AudioContext();
           this.audioStream = stream;
 
-          // this.initCrepe();
+          this.sampleRate = this.audioContext.sampleRate;
+
+          this.initCrepe();
 
           const analyser = this.audioContext.createAnalyser();
           const source = this.audioContext.createMediaStreamSource(stream);
@@ -115,35 +111,10 @@ export default {
 
             this.pitch = this.pitchFinder(inputBuffer);
 
-            // var pitches = this.detectors.map((detector) =>
-            //   detector(inputBuffer)
-            // );
-
-            // // Remove null values
-            // pitches = pitches.filter((pitch) => pitch);
-
-            // // Remove impossible values
-            // pitches = pitches.filter(
-            //   (pitch) => pitch && pitch >= 16.35 && pitch <= 7902.13
-            // );
-
-            // // Get the mean of the pitches
-            // const pitch = pitches.reduce((a, b) => a + b, 0) / pitches.length;
-
             console.log(this.pitch);
 
-            if (this.pitch && this.pitch >= 16.35 && this.pitch <= 7902.13) {
-              // Get the MIDI number
-              this.midiNum = freqToMidi(this.pitch);
-
-              // Get the note name
-              this.note = midiToNote(this.midiNum);
-            } else {
-              this.note = "-";
-              this.pitch = "-";
-              this.midiNum = "-";
-            }
-          }, 1000 / 60);
+            this.updateUi();
+          }, 1000 / 20);
         })
         .catch((err) => console.error(err));
     },
@@ -154,20 +125,79 @@ export default {
     stopRecording() {
       this.isRecording = false;
       this.audioStream.getTracks().forEach((track) => track.stop());
-      this.note = null;
+      this.note = "-";
     },
 
     initCrepe() {
-      // this.crepePitch = ml5.pitchDetection("/model", this.audioContext, this.audioStream, null);
+      this.crepePitch = ml5.pitchDetection("/model", this.audioContext, this.audioStream, null);
     },
 
-    crepe(buf, sampleRate) {
+    crepe() {
       this.crepePitch.getPitch((err, frequency) => {
-        console.log("Frequency", frequency);
+        this.pitch = frequency;
+        this.updateUi();
       });
-      return 0;
-      // return await this.crepePitch.getPitch();
     },
+
+    updateUi() {
+      if (this.pitch && this.pitch >= 16.35 && this.pitch <= 7902.13) {
+        // Get the MIDI number
+        this.midiNum = freqToMidi(this.pitch);
+
+        // Get the note name
+        this.note = midiToNote(this.midiNum);
+      } else {
+        this.note = "-";
+        this.pitch = "-";
+        this.midiNum = "-";
+      }
+    },
+
+    // Based on : https://github.com/cwilso/PitchDetect
+    autoCorrelate(buf) {
+      // Implements the ACF2+ algorithm
+      var SIZE = buf.length;
+      var rms = 0;
+
+      for (var i = 0; i < SIZE; i++) {
+        var val = buf[i];
+        rms += val * val;
+      }
+      rms = Math.sqrt(rms / SIZE);
+      if (rms < 0.01) // not enough signal
+        return -1;
+
+      var r1 = 0, r2 = SIZE - 1, thres = 0.2;
+      for (var i = 0; i < SIZE / 2; i++)
+        if (Math.abs(buf[i]) < thres) { r1 = i; break; }
+      for (var i = 1; i < SIZE / 2; i++)
+        if (Math.abs(buf[SIZE - i]) < thres) { r2 = SIZE - i; break; }
+
+      buf = buf.slice(r1, r2);
+      SIZE = buf.length;
+
+      var c = new Array(SIZE).fill(0);
+      for (var i = 0; i < SIZE; i++)
+        for (var j = 0; j < SIZE - i; j++)
+          c[i] = c[i] + buf[j] * buf[j + i];
+
+      var d = 0; while (c[d] > c[d + 1]) d++;
+      var maxval = -1, maxpos = -1;
+      for (var i = d; i < SIZE; i++) {
+        if (c[i] > maxval) {
+          maxval = c[i];
+          maxpos = i;
+        }
+      }
+      var T0 = maxpos;
+
+      var x1 = c[T0 - 1], x2 = c[T0], x3 = c[T0 + 1];
+      var a = (x1 + x3 - 2 * x2) / 2;
+      var b = (x3 - x1) / 2;
+      if (a) T0 = T0 - b / (2 * a);
+
+      return this.sampleRate / T0;
+    }
   },
   mounted() {
     // this.initCrepe();
@@ -185,60 +215,5 @@ function freqToMidi(f) {
   return m;
 }
 
-function autoCorrelate(buf, sampleRate) {
-  // Implements the ACF2+ algorithm
-  var SIZE = buf.length;
-  var rms = 0;
 
-  for (var i = 0; i < SIZE; i++) {
-    var val = buf[i];
-    rms += val * val;
-  }
-  rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01)
-    // not enough signal
-    return -1;
-
-  var r1 = 0,
-    r2 = SIZE - 1,
-    thres = 0.2;
-  for (var i = 0; i < SIZE / 2; i++)
-    if (Math.abs(buf[i]) < thres) {
-      r1 = i;
-      break;
-    }
-  for (var i = 1; i < SIZE / 2; i++)
-    if (Math.abs(buf[SIZE - i]) < thres) {
-      r2 = SIZE - i;
-      break;
-    }
-
-  buf = buf.slice(r1, r2);
-  SIZE = buf.length;
-
-  var c = new Array(SIZE).fill(0);
-  for (var i = 0; i < SIZE; i++)
-    for (var j = 0; j < SIZE - i; j++) c[i] = c[i] + buf[j] * buf[j + i];
-
-  var d = 0;
-  while (c[d] > c[d + 1]) d++;
-  var maxval = -1,
-    maxpos = -1;
-  for (var i = d; i < SIZE; i++) {
-    if (c[i] > maxval) {
-      maxval = c[i];
-      maxpos = i;
-    }
-  }
-  var T0 = maxpos;
-
-  var x1 = c[T0 - 1],
-    x2 = c[T0],
-    x3 = c[T0 + 1];
-  a = (x1 + x3 - 2 * x2) / 2;
-  b = (x3 - x1) / 2;
-  if (a) T0 = T0 - b / (2 * a);
-
-  return sampleRate / T0;
-}
 </script>

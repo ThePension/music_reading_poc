@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@quasar/extras": "^1.15.11",
+    "ml5": "^0.12.2",
     "pitchfinder": "^2.3.2",
     "quasar": "^2.11.7",
     "register-service-worker": "^1.7.2",
