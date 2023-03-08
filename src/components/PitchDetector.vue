@@ -47,8 +47,8 @@ export default {
       analyser: null,
       detectors: [
         {
-          "label": "YIN Fast",
-          "value": PitchFinder.YINFast(),
+          "label": "ACF2+",
+          "value": PitchFinder.ACF2PLUS(),
         },
         {
           "label": "YIN",
