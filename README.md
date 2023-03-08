@@ -10,6 +10,11 @@ Ce POC (Proof Of Concept) a pour objectifs de :
     * AMDF,
     * Autocorrélation
 
+Pour réaliser ce mini-projet, les technologies suivantes ont été utilisées :
+* Vue, avec Vite
+* Quasar
+* Vercel pour le déploiement
+
 ## Project Setup
 
 ```sh
@@ -27,3 +32,15 @@ npm run dev
 ```sh
 npm run build
 ```
+
+## Sources
+### Vite/Vue
+* Mise en place d'un projet vite : https://vitejs.dev/guide/
+* PWA avec vite/vue : https://vite-pwa-org.netlify.app/guide/
+
+### Quasar
+* Integration de Quasar dans un projet vite/vue : https://quasar.dev/start/vite-plugin
+* Documentation officielle de Quasar pour les components
+
+### Deployment
+* Vercel CLI : https://vercel.com/docs/cli
