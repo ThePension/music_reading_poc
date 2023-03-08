@@ -11,6 +11,9 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'autoUpdate',
+      includeAssets: [
+         "src/assets/**/*",
+      ],
     }),
     quasar({
       sassVariables: 'src/quasar-variables.sass'

@@ -1,16 +1,18 @@
 <template>
-  <div>
-    <h1>Reconnaissance de notes</h1>
+  <div class="q-pa-md">
+    <h3 class="q-my-lg">Reconnaissance de notes</h3>
     <q-btn
       @click="startRecording"
-      v-bind:hidden="isRecording"
-      style="background: #ff0080; color: white"
+      class="q-ma-md"
+      v-bind:disable="isRecording"
+      style="background: #FFFFFF; color: black"
       label="Commencer la détection"
     />
     <q-btn
       @click="stopRecording"
-      v-bind:hidden="!isRecording"
-      style="background: #ff0080; color: white"
+      v-bind:disable="!isRecording"
+      class="q-ma-md"
+      style="background: #FFFFFF; color: black"
       label="Arrêter la détection"
     />
     
