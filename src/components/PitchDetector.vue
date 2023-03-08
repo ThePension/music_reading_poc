@@ -1,6 +1,6 @@
 <template>
   <div class="q-pa-md">
-    <h3 class="q-my-lg">Reconnaissance de notes</h3>
+    <h4 class="q-my-lg">Reconnaissance de notes</h4>
     <q-btn
       @click="startRecording"
       class="q-ma-md"
@@ -15,14 +15,20 @@
       style="background: #FFFFFF; color: black"
       label="Arrêter la détection"
     />
-    
-    <select v-model="pitchFinder">
-      <option v-for="detector in detectors" :value="detector">
-        {{ detector.name }}
-      </option>
-    </select>
-    <p>Note jouée :</p>
-    <h2>{{ note }}</h2>
+
+    <div class="q-pa-md">
+      <q-option-group
+        :options="detectors"
+        type="radio"
+        v-model="pitchFinder"
+      />
+    </div>
+
+    <h5>Note jouée :</h5>
+    <h2 class="text-h2 text-center">{{ note }}</h2>
+    <!-- Display pitch with 2 decimal if pitch is a number -->
+    <h5>Fréquence : {{ typeof pitch === "number" ? pitch.toFixed(2) : pitch }}</h5>
+    <h5>N° MIDI : {{ midiNum }}</h5>
   </div>
 </template>
 
@@ -50,15 +56,26 @@ export default {
     return {
       audioStream: null,
       audioContext: null, // new AudioContext(),
+      pitchFinder: PitchFinder.YIN(),
       detectors: [
-        PitchFinder.YIN(),
-        PitchFinder.AMDF(),
-        PitchFinder.DynamicWavelet(),
+        {
+          "label": "YIN",
+          "value": PitchFinder.YIN()
+        },
+        {
+          "label": "AMDF",
+          "value": PitchFinder.AMDF()
+        },
+        {
+          "label": "DynamicWavelet",
+          "value": PitchFinder.DynamicWavelet()
+        },
         // this.crepe,
       ],
-      pitchFinder: PitchFinder.YIN(),
       isRecording: false,
-      note: null,
+      note: "-",
+      pitch: "-",
+      midiNum: "-",
       crepePitch: null,
     };
   },
@@ -92,13 +109,11 @@ export default {
           setInterval(() => {
             if (!this.isRecording) return;
 
-            console.log("pitchFinder: ", this.pitchFinder.name);
-
             const inputBuffer = new Float32Array(2048);
 
             analyser.getFloatTimeDomainData(inputBuffer);
 
-            const pitch = this.pitchFinder(inputBuffer);
+            this.pitch = this.pitchFinder(inputBuffer);
 
             // var pitches = this.detectors.map((detector) =>
             //   detector(inputBuffer)
@@ -115,17 +130,27 @@ export default {
             // // Get the mean of the pitches
             // const pitch = pitches.reduce((a, b) => a + b, 0) / pitches.length;
 
-            console.log(pitch);
+            console.log(this.pitch);
 
-            if (pitch) {
-              this.note = pitchToNote(pitch);
+            if (this.pitch && this.pitch >= 16.35 && this.pitch <= 7902.13) {
+              // Get the MIDI number
+              this.midiNum = freqToMidi(this.pitch);
+
+              // Get the note name
+              this.note = midiToNote(this.midiNum);
             } else {
               this.note = "-";
+              this.pitch = "-";
+              this.midiNum = "-";
             }
-          }, 1000 / 20);
+          }, 1000 / 60);
         })
         .catch((err) => console.error(err));
     },
+
+    /**
+     * Stop recording
+     */
     stopRecording() {
       this.isRecording = false;
       this.audioStream.getTracks().forEach((track) => track.stop());
@@ -149,14 +174,8 @@ export default {
   },
 };
 
-function pitchToNote(pitch) {
-  // const octave = Math.floor(pitch / 12) - 1;
-
-  const midiNum = freqToMidi(pitch);
-  const currentNote = REFERENCE_FREQUENCIES[midiNum % 12];
-
-  // return `${currentNote} ${octave} cents`;
-  return `${currentNote}`;
+function midiToNote(midiNum) {
+  return REFERENCE_FREQUENCIES[midiNum % 12];
 }
 
 // taken from p5.Sound
