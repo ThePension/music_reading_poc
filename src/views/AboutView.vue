@@ -1,7 +1,7 @@
 <template>
   <div class="about">
-    <h3>À propos de ce projet</h3>
-    
+    <h3 class="q-my-lg">À propos de ce projet</h3>
+
     <p>Ce POC (Proof Of Concept) a pour objectifs de :</p>
     <ul>
       <li>
@@ -18,14 +18,15 @@
       <ul>
         <li>pour récupérer le flux audio</li>
         <li>
-          <a href="https://github.com/marl/crepe"
-            >CREPE (A Convolutional Representation for Pitch Estimation)</a
-          >
+          <a href="https://github.com/marl/crepe">
+            CREPE (A Convolutional Representation for Pitch Estimation)
+            </a>
         </li>
         <li>
-          <a href="https://github.com/peterkhayes/pitchfinder"
-            >Différents algorithmes de détection de fréquences</a
-          >, dont :
+          <a href="https://github.com/peterkhayes/pitchfinder">
+            Différents algorithmes de détection de fréquences
+          </a>
+          , dont :
         </li>
         <ul>
           <li>YIN,</li>
@@ -34,9 +35,8 @@
         </ul>
       </ul>
     </ul>
-    <p>
-      Pour réaliser ce mini-projet, les technologies suivantes ont été utilisées
-      :
+    <p class="q-mt-md">
+      Pour réaliser ce mini-projet, les technologies suivantes ont été utilisées :
     </p>
     <ul>
       <li>Vue, avec Vite</li>
